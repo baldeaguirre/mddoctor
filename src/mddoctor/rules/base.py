@@ -38,6 +38,14 @@ class Rule:
     def check(self, doc: Document, ctx: Context) -> Iterator[Diagnostic]:
         raise NotImplementedError
 
+    def fix(self, doc: Document, suppressions: object | None = None) -> str | None:
+        """Return rewritten document text when this rule can auto-correct, else None.
+
+        ``suppressions`` is a ``Suppressions`` map; fixed lines must not be rewritten
+        when the rule is disabled there.
+        """
+        return None
+
     def diagnostic(self, doc: Document, line: int, column: int, message: str) -> Diagnostic:
         return Diagnostic(
             path=doc.path,

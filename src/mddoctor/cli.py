@@ -59,6 +59,18 @@ def _cmd_check(args: argparse.Namespace) -> int:
     if not files:
         print("mddoctor: no Markdown files found", file=sys.stderr)
         return EXIT_OK
+    if getattr(args, "fix", False):
+        from mddoctor.engine import apply_fixes
+
+        fixed = apply_fixes(files, config)
+        cwd = Path.cwd()
+        changed = [item for item in fixed if item.changed]
+        total_fixes = sum(item.fixes_applied for item in changed)
+        for item in changed:
+            # Structured formats own stdout; fix chatter goes to stderr.
+            print(f"fixed: {display_path(item.path, cwd)} ({item.fixes_applied} fix(es))", file=sys.stderr)
+        if args.format == "text" and total_fixes:
+            print(f"Applied {total_fixes} fix(es) across {len(changed)} file(s).")
     result = lint_files(files, config)
     output = FORMATTERS[args.format](result, Path.cwd())
     if output:
@@ -138,6 +150,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--format", choices=sorted(FORMATTERS), default="text", help="output format (default: text)"
     )
     check.add_argument("--strict", action="store_true", help="exit with 1 on warnings too")
+    check.add_argument(
+        "--fix",
+        action="store_true",
+        help="auto-correct trailing whitespace, hard tabs, and final newline",
+    )
     check.set_defaults(handler=_cmd_check)
 
     toc = commands.add_parser(
